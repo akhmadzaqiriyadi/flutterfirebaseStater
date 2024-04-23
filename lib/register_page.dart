@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class LoginPage extends StatefulWidget {
+class RegisterPage extends StatefulWidget {
   final Function()? onTap;
-  const LoginPage({super.key, required this.onTap});
+  const RegisterPage({super.key, required this.onTap});
 
   @override
-  State<LoginPage> createState() => _LoginPageSate();
+  State<RegisterPage > createState() => _RegisterPageSate();
 }
 
-class _LoginPageSate extends State<LoginPage> {
+class _RegisterPageSate extends State<RegisterPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmpasswordController = TextEditingController();
 
-  Future signIn() async {
+  Future signUserUp() async {
     showDialog(
       context: context,
       builder: (context) {
@@ -24,34 +25,101 @@ class _LoginPageSate extends State<LoginPage> {
     );
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text, password: _passwordController.text);
-      Navigator.pop(context);
-    } catch (error) {
-      Navigator.pop(context); // Menutup dialog loading
-
-      String errorMessage = "Manjingna Gmail mbuh sandi Salah Kue!!";
-      if (error is FirebaseAuthException) {
-        if (error.code == 'user-not-found') {
-          errorMessage = "Email tidak terdaftar";
-        } else if (error.code == 'wrong-password') {
-          errorMessage = "Password salah";
+      if (_passwordController.text == _confirmpasswordController.text) {
+        if (_passwordController.text.length >=6) {
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+        // Jika pendaftaran berhasil, tutup dialog
+        Navigator.of(context).pop();
+        } else {
+          Navigator.of(context).pop();
+          showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text("Error"),
+              content: Text("Password must be at least 6 characters long."),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text("OK"),
+                ),
+              ],
+            );
+          },
+        );
         }
+      } else{
+        // Jika kata sandi tidak cocok, tampilkan pesan kesalahan
+        Navigator.of(context).pop(); // Tutup dialog
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text("Error"),
+              content: Text("Passwords do not match."),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text("OK"),
+                ),
+              ],
+            );
+          },
+        );
       }
-
-      // Menampilkan pesan kesalahan
+    } on FirebaseAuthException catch (error) {
+      // Tangani kesalahan autentikasi
+      Navigator.of(context).pop(); // Tutup dialog
+      if (error.code == 'email-already-in-use') {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text("Error"),
+              content: Text("The email address is already in use by another account."),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text("OK"),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text("Error"),
+              content: Text("An error occurred during registration: ${error.message}"),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text("OK"),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (error) {
+      // Tangani kesalahan lainnya
+      print("Error during registration: $error");
+      Navigator.of(context).pop(); // Tutup dialog
       showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: Text("Kesalahan"),
-            content: Text(errorMessage),
-            actions: <Widget>[
+            title: Text("Error"),
+            content: Text("An error occurred during registration."),
+            actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text("Tutup"),
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text("OK"),
               ),
             ],
           );
@@ -71,16 +139,25 @@ class _LoginPageSate extends State<LoginPage> {
   //   );
   // }
 
-  // void wrongPasswordMessage() {
+  // void wrongPasswordMessage(String message) {
   //   showDialog(
   //     context: context,
   //     builder: (context) {
-  //       return const AlertDialog(
-  //         title: Text('Salah Passworde BOLO'),
+  //       return AlertDialog(
+  //         backgroundColor: Colors.purple,
+  //         title: Center(
+  //           child: Text(
+  //             message,
+  //             style: TextStyle(
+  //               color: Colors.white,
+  //             ),
+  //           ),
+  //         ),
   //       );
   //     },
   //   );
   // }
+
 
   @override
   void dispose() {
@@ -102,19 +179,21 @@ class _LoginPageSate extends State<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Log in.',
+                    'Sign Up.',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 24,
                     ),
                   ),
                   SizedBox(height: 20),
-                  Image.asset(
-                    'lib/assets/images/login.png',
+                  Center(
+                    child: Image.asset(
+                      'lib/assets/images/signup.png'
+                    ),
                   ),
                   SizedBox(height: 20),
                   Text(
-                    'Please sign in to continue.',
+                    'Please Sign Up to continue.',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -143,12 +222,24 @@ class _LoginPageSate extends State<LoginPage> {
                       ),
                     ),
                   ),
+                  SizedBox(height: 10),
+                  TextFormField(
+                    controller: _confirmpasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Confrim Password',
+                      prefixIcon: Icon(Icons.lock),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                    ),
+                  ),
                   SizedBox(height: 20.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       GestureDetector(
-                        onTap: signIn,
+                        onTap: signUserUp,
                         child: Container(
                           padding: EdgeInsets.symmetric(
                               horizontal: 155, vertical: 18),
@@ -158,8 +249,9 @@ class _LoginPageSate extends State<LoginPage> {
                           ),
                           child: Text('Login',
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold
+                            
                           ),
                           ),
                         ),
@@ -177,14 +269,14 @@ class _LoginPageSate extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Ora Duwe Akun Bolo?',
+                        'Wis Duwe Akun Bolo?',
                         style: TextStyle(color: Colors.grey[700]),
                       ),
                       const SizedBox(width: 4),
                       GestureDetector(
                         onTap: widget.onTap,
                         child: const Text(
-                          'Daptar OH!',
+                          'Manjing  GAS OH!',
                           style: TextStyle(
                               color: Colors.purple,
                               fontWeight: FontWeight.bold),
